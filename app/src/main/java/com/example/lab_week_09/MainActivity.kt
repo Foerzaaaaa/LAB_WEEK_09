@@ -3,26 +3,33 @@ package com.example.lab_week_09
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
+import com.example.lab_week_09.ui.theme.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            LAB_WEEK_09Theme {
+            Lab_week_09Theme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -36,12 +43,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun Home() {
-    // Here, we create a mutable state list of Student
-    // We use remember to make the list remember its value
-    // This is so that the list won't be recreated when the composable recomposes
-    // We use mutableStateListOf to make the list mutable
-    // This is so that we can add or remove items from the list
-    // If you're still confused, this is basically the same concept as using useState in React
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -50,117 +51,158 @@ fun Home() {
         )
     }
 
-    // Here, we create a mutable state of Student
-    // This is so that we can get the value of the input field
     var inputField by remember { mutableStateOf(Student("")) }
+    var showError by remember { mutableStateOf(false) }
 
-    // We call the HomeContent composable
-    // Here, we pass:
-    // - listData to show the list of items inside HomeContent
-    // - inputField to show the input field value inside HomeContent
-    // - A lambda function to update the value of the inputField
-    // - A lambda function to add the inputField to the listData
     HomeContent(
         listData,
         inputField,
+        showError,
         { input ->
             inputField = inputField.copy(name = input)
+            if (showError && input.isNotBlank()) {
+                showError = false
+            }
         },
         {
             if (inputField.name.isNotBlank()) {
                 listData.add(inputField)
                 inputField = Student("")
+                showError = false
+            } else {
+                showError = true
             }
+        },
+        { index ->
+            listData.removeAt(index)
         }
     )
 }
 
-// Here, we create a composable function called HomeContent
-// HomeContent is used to display the content of the Home composable
 @Composable
 fun HomeContent(
     listData: SnapshotStateList<Student>,
     inputField: Student,
+    showError: Boolean,
     onInputValueChange: (String) -> Unit,
-    onButtonClick: () -> Unit
+    onButtonClick: () -> Unit,
+    onDeleteItem: (Int) -> Unit
 ) {
-    // Here, we use LazyColumn to display a list of items lazily
-    LazyColumn {
-        // Here, we use item to display an item inside the LazyColumn
-        item {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Header Section
+        HeaderSection(title = "Student List")
+
+        // Input Section Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .shadow(8.dp, RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
             Column(
-                // Modifier.padding(16.dp) is used to add padding to the Column
-                // You can also use Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                // to add padding horizontally and vertically
-                // or Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp)
-                // to add padding to each side
                 modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                // Alignment.CenterHorizontally is used to align the Column horizontally
-                // You can also use verticalArrangement = Arrangement.Center
-                // to align the Column vertically
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = stringResource(id = R.string.enter_item))
-
-                // Here, we use TextField to display a text input field
-                TextField(
-                    // Set the value of the input field
-                    value = inputField.name,
-                    // Set the keyboard type of the input field
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    // Set what happens when the value of the input field changes
-                    onValueChange = {
-                        // Here, we call the onInputValueChange lambda function
-                        // and pass the value of the input field as a parameter
-                        // This is so that we can update the value of the inputField
-                        onInputValueChange(it)
-                    }
+                Text(
+                    text = "Add New Student",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Here, we use Button to display a button
-                // the onClick parameter is used to set what happens when the button is clicked
-                Button(onClick = {
-                    // Here, we call the onButtonClick lambda function
-                    // This is so that we can add the inputField value to the listData
-                    // and reset the value of the inputField
-                    onButtonClick()
-                }) {
-                    // Set the text of the button
-                    Text(text = stringResource(id = R.string.button_click))
+                ModernTextField(
+                    value = inputField.name,
+                    onValueChange = { onInputValueChange(it) },
+                    label = "Enter student name",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (showError) {
+                    Text(
+                        text = "❌ Name cannot be empty!",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrimaryTextButton(
+                    text = stringResource(id = R.string.button_click),
+                    onClick = onButtonClick
+                )
             }
         }
 
-        // Here, we use items to display a list of items inside the LazyColumn
-        // This is the RecyclerView replacement
-        // We pass the listData as a parameter
-        items(listData) { item ->
-            Column(
-                modifier = Modifier
-                    .padding(vertical = 4.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = item.name)
+        // List Section Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Students (${listData.size})",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        // List Items
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            if (listData.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No students yet.\nAdd your first student!",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                itemsIndexed(listData) { index, item ->
+                    StudentItemCard(
+                        name = item.name,
+                        onDelete = { onDeleteItem(index) }
+                    )
+                }
             }
         }
     }
 }
 
-// Here, we create a preview function of the Home composable
-// This function is specifically used to show a preview of the Home composable
-// This is only for development purpose
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    LAB_WEEK_09Theme {
+    Lab_week_09Theme {
         Home()
     }
 }
 
-// Declare a data class called Student
 data class Student(
     var name: String
 )

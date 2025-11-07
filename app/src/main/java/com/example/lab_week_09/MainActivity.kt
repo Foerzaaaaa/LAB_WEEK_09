@@ -3,27 +3,26 @@ package com.example.lab_week_09
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.example.lab_week_09.ui.theme.*
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.lab_week_09.ui.theme.Lab_week_09Theme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,15 +33,56 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Home()
+                    val navController = rememberNavController()
+                    App(navController = navController)
                 }
             }
         }
     }
 }
 
+// Here, we create a composable function called App
+// This will be the root composable of the app
 @Composable
-fun Home() {
+fun App(navController: NavHostController) {
+    // Here, we use NavHost to create a navigation graph
+    // We pass the navController as a parameter
+    // We also set the startDestination to "home"
+    // This means that the app will start with the Home composable
+    NavHost(
+        navController = navController,
+        startDestination = "home"
+    ) {
+        // Here, we create a route called "home"
+        // We pass the Home composable as a parameter
+        // This means that when the app navigates to "home", the Home composable will be displayed
+        composable("home") {
+            // Here, we pass a lambda function that navigates to "resultContent" and pass the listData as a parameter
+            Home {
+                navController.navigate("resultContent?listData=$it")
+            }
+        }
+
+        // Here, we create a route called "resultContent"
+        // We pass the ResultContent composable as a parameter
+        // This means that when the app navigates to "resultContent"
+        // the ResultContent composable will be displayed
+        // You can also define arguments for the route
+        // Here, we define a String argument called "listData"
+        // We use navArgument to define the argument
+        // We use NavType.StringType to define the type of the argument
+        composable(
+            "resultContent?listData={listData}",
+            arguments = listOf(navArgument("listData") { type = NavType.StringType })
+        ) {
+            // Here, we pass the value of the argument to the ResultContent composable
+            ResultContent(it.arguments?.getString("listData").orEmpty())
+        }
+    }
+}
+
+@Composable
+fun Home(navigateFromHomeToResult: (String) -> Unit) {
     val listData = remember {
         mutableStateListOf(
             Student("Tanu"),
@@ -52,29 +92,21 @@ fun Home() {
     }
 
     var inputField by remember { mutableStateOf(Student("")) }
-    var showError by remember { mutableStateOf(false) }
 
     HomeContent(
         listData,
         inputField,
-        showError,
         { input ->
             inputField = inputField.copy(name = input)
-            if (showError && input.isNotBlank()) {
-                showError = false
-            }
         },
         {
             if (inputField.name.isNotBlank()) {
                 listData.add(inputField)
                 inputField = Student("")
-                showError = false
-            } else {
-                showError = true
             }
         },
-        { index ->
-            listData.removeAt(index)
+        {
+            navigateFromHomeToResult(listData.toList().toString())
         }
     )
 }
@@ -83,115 +115,125 @@ fun Home() {
 fun HomeContent(
     listData: SnapshotStateList<Student>,
     inputField: Student,
-    showError: Boolean,
     onInputValueChange: (String) -> Unit,
     onButtonClick: () -> Unit,
-    onDeleteItem: (Int) -> Unit
+    navigateFromHomeToResult: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Header Section
-        HeaderSection(title = "Student List")
-
-        // Input Section Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .shadow(8.dp, RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
+    LazyColumn {
+        item {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(16.dp)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Add New Student",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                OnBackgroundTitleText(text = stringResource(id = R.string.enter_item))
 
-                ModernTextField(
+                TextField(
                     value = inputField.name,
-                    onValueChange = { onInputValueChange(it) },
-                    label = "Enter student name",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (showError) {
-                    Text(
-                        text = "❌ Name cannot be empty!",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                PrimaryTextButton(
-                    text = stringResource(id = R.string.button_click),
-                    onClick = onButtonClick
-                )
-            }
-        }
-
-        // List Section Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Students (${listData.size})",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-
-        // List Items
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
-            if (listData.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No students yet.\nAdd your first student!",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    onValueChange = {
+                        onInputValueChange(it)
                     }
-                }
-            } else {
-                itemsIndexed(listData) { index, item ->
-                    StudentItemCard(
-                        name = item.name,
-                        onDelete = { onDeleteItem(index) }
+                )
+
+                // Row untuk menampung 2 button side by side
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    PrimaryTextButton(
+                        text = stringResource(id = R.string.button_click),
+                        onClick = onButtonClick
+                    )
+
+                    PrimaryTextButton(
+                        text = stringResource(id = R.string.button_navigate),
+                        onClick = navigateFromHomeToResult
                     )
                 }
             }
         }
+
+        items(listData) { item ->
+            Column(
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                OnBackgroundItemText(text = item.name)
+            }
+        }
+    }
+}
+
+// UI Element for displaying a title
+@Composable
+fun OnBackgroundTitleText(text: String) {
+    TitleText(text = text, color = MaterialTheme.colorScheme.onBackground)
+}
+
+// Here, we use the titleLarge style from the typography
+@Composable
+fun TitleText(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        color = color
+    )
+}
+
+// UI Element for displaying an item list
+@Composable
+fun OnBackgroundItemText(text: String) {
+    ItemText(text = text, color = MaterialTheme.colorScheme.onBackground)
+}
+
+// Here, we use the bodySmall style from the typography
+@Composable
+fun ItemText(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = color
+    )
+}
+
+// UI Element for displaying a button
+@Composable
+fun PrimaryTextButton(text: String, onClick: () -> Unit) {
+    TextButton(text = text, textColor = androidx.compose.ui.graphics.Color.White, onClick = onClick)
+}
+
+// Here, we use the labelMedium style from the typography
+@Composable
+fun TextButton(text: String, textColor: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.padding(8.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = androidx.compose.ui.graphics.Color.DarkGray,
+            contentColor = textColor
+        )
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+// Here, we create a composable function called ResultContent
+// ResultContent accepts a String parameter called listData from the Home composable
+// then displays the value of listData to the screen
+@Composable
+fun ResultContent(listData: String) {
+    Column(
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Here, we call the OnBackgroundItemText UI Element
+        OnBackgroundItemText(text = listData)
     }
 }
 
@@ -199,7 +241,7 @@ fun HomeContent(
 @Composable
 fun PreviewHome() {
     Lab_week_09Theme {
-        Home()
+        Home { }
     }
 }
 

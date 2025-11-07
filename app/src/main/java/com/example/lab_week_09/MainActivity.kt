@@ -1,4 +1,4 @@
-package com.example.lab_week_09 // Sesuaikan dengan package name kamu
+package com.example.lab_week_09
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -18,24 +18,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.example.lab_week_09.ui.theme.LAB_WEEK_09Theme
 
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Here, we use setContent instead of setContentView
         setContent {
-            // Here, we wrap our content with the theme
-            // You can check out the LABWEEK09Theme inside Theme.kt
             LAB_WEEK_09Theme {
-                // A surface container using the background color from the theme
                 Surface(
-                    // We use Modifier.fillMaxSize to make the surface fill the whole screen
                     modifier = Modifier.fillMaxSize(),
-                    // We use MaterialTheme.colorScheme.background to get the background color
-                    // and set it as the color of the surface
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Here, we call the Home composable
                     Home()
                 }
             }
@@ -43,10 +34,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// Here, instead of defining it in an XML file, we create a composable function called Home
-// @Preview is used to show a preview of the composable
-// @Composable is used to tell the compiler that this is a composable function
-// It's a way of defining a composable
 @Composable
 fun Home() {
     // Here, we create a mutable state list of Student
@@ -65,7 +52,7 @@ fun Home() {
 
     // Here, we create a mutable state of Student
     // This is so that we can get the value of the input field
-    var inputField = remember { mutableStateOf(Student("")) }
+    var inputField by remember { mutableStateOf(Student("")) }
 
     // We call the HomeContent composable
     // Here, we pass:
@@ -75,14 +62,14 @@ fun Home() {
     // - A lambda function to add the inputField to the listData
     HomeContent(
         listData,
-        inputField.value,
+        inputField,
         { input ->
-            inputField.value = inputField.value.copy(input)
+            inputField = inputField.copy(name = input)
         },
         {
-            if (inputField.value.name.isNotBlank()) {
-                listData.add(inputField.value)
-                inputField.value = Student("")
+            if (inputField.name.isNotBlank()) {
+                listData.add(inputField)
+                inputField = Student("")
             }
         }
     )
@@ -109,7 +96,7 @@ fun HomeContent(
                 // to add padding to each side
                 modifier = Modifier
                     .padding(16.dp)
-                    .fillMaxSize(),
+                    .fillMaxWidth(),
                 // Alignment.CenterHorizontally is used to align the Column horizontally
                 // You can also use verticalArrangement = Arrangement.Center
                 // to align the Column vertically
@@ -153,7 +140,7 @@ fun HomeContent(
             Column(
                 modifier = Modifier
                     .padding(vertical = 4.dp)
-                    .fillMaxSize(),
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = item.name)
@@ -168,7 +155,9 @@ fun HomeContent(
 @Preview(showBackground = true)
 @Composable
 fun PreviewHome() {
-    Home()
+    LAB_WEEK_09Theme {
+        Home()
+    }
 }
 
 // Declare a data class called Student
